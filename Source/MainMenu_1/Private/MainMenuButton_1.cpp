@@ -3,6 +3,7 @@
 
 // core
 #include "Containers/UnrealString.h" // FString
+#include "Templates/UnrealTemplate.h" // MoveTemp
 #include "Internationalization/Text.h" // FText
 
 // engine
@@ -17,9 +18,10 @@ UMainMenuButton_1::UMainMenuButton_1(const FObjectInitializer& ObjectInitializer
 	: Super(ObjectInitializer)
 	, bButtonTextValid{ false }
 	, bRedDotValid{ false }
+	, bPressed{ false }
 	, NormalOpacity{ 0.7f }
 	, HoveredOpacity{ 1.f }
-	, ClickedOpacity{ 0.3f }
+	, PressedOpacity{ 0.3f }
 {}
 
 // event pre construct
@@ -27,20 +29,14 @@ void UMainMenuButton_1::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 
-	// biến nội bộ để thêm Version đằng sau
-	FString AppendVersion{ ButtonData.ButtonName };
-
-	// thêm chữ Version
-	AppendVersion.Append(" Version");
-
 	// còn dùng ở trong SetButtonState
 	bButtonTextValid = text->IsValidLowLevel();
 
 	// nếu ButtonTextBlock valid
 	if (bButtonTextValid)
 	{
-		// thay đổi chữ
-		text->SetText(FText::FromString(AppendVersion));
+		// thay đổi chữ, thêm đuôi version
+		text->SetText(FText::FromString(MoveTemp(ButtonData.ButtonName.Append(" Version"))));
 	}
 
 	// nếu RedDotImage valid
@@ -51,7 +47,7 @@ void UMainMenuButton_1::NativePreConstruct()
 }
 
 // thay đổi opacity chữ và bật tắt chấm đỏ
-void UMainMenuButton_1::SetButtonState(const float& TextOpacity, const ESlateVisibility& RedDotVisisbility) noexcept
+void UMainMenuButton_1::SetButtonState(const float& TextOpacity, const ESlateVisibility RedDotVisisbility) noexcept
 {
 	// cần check valid ButtonTextBlock vì hàm này gọi trong PreConstruct (trong NormalButton())
 	if (bButtonTextValid)
@@ -71,8 +67,12 @@ void UMainMenuButton_1::SetButtonState(const float& TextOpacity, const ESlateVis
 // chuyển trạng thái nút khi bình thường
 void UMainMenuButton_1::NormalButton() noexcept
 {
-	// chữ hơi mờ, ẩn chấm đỏ
-	SetButtonState(NormalOpacity, ESlateVisibility::Hidden);
+	// nếu đang không nhấn nút (trường hợp nhấn rồi giữ)
+	if (!button->IsPressed())
+	{
+		// chữ hơi mờ, ẩn chấm đỏ
+		SetButtonState(NormalOpacity, ESlateVisibility::Hidden);
+	}
 }
 
 // đổi hình preview
@@ -89,24 +89,32 @@ void UMainMenuButton_1::ChangeImage() noexcept
 // chuyển trạng thái nút khi được rê chuột
 void UMainMenuButton_1::HoveredButton() noexcept
 {
-	// chữ rõ, hiện chấm đỏ
-	SetButtonState(HoveredOpacity, ESlateVisibility::Visible);
+	// nếu đang không nhấn nút (trường hợp nhấn rồi giữ)
+	if (!button->IsPressed())
+	{
+		// chữ rõ, hiện chấm đỏ
+		SetButtonState(HoveredOpacity, ESlateVisibility::Visible);
 
-	// đổi hình preview
-	ChangeImage();
+		// đổi hình preview
+		ChangeImage();
+	}
 }
 
 // chuyển trạng thái nút khi được nhấn
-void UMainMenuButton_1::ClickedButton() noexcept
+void UMainMenuButton_1::PressedButton() noexcept
 {
 	// chữ mờ, hiện chấm đỏ
-	SetButtonState(ClickedOpacity, ESlateVisibility::Visible);
+	SetButtonState(PressedOpacity, ESlateVisibility::Visible);
+}
 
+// mở level tương ứng khi click
+void UMainMenuButton_1::ClickedButton() noexcept
+{
 	// kiểm tra LevelToPointer (TSoftObjectPtr) không bao giờ null
 	if (!ButtonData.LevelToOpen.IsNull())
 	{
 		// mở level được chọn sau khi chọn nhân vật
-		UGameplayStatics::OpenLevelBySoftObjectPtr(GetWorld(), ButtonData.LevelToOpen);
+		UGameplayStatics::OpenLevelBySoftObjectPtr(GetWorld(), MoveTemp(ButtonData.LevelToOpen));
 	}
 }
 
@@ -118,9 +126,15 @@ void UMainMenuButton_1::NativeConstruct()
 	// gọi HoveredButton khi rê chuột vào nút
 	button->OnHovered.AddDynamic(this, &UMainMenuButton_1::HoveredButton);
 
-	// gọi NormalButton khi thả chuột khỏi nút
+	// gọi NormalButton khi rê chuột khỏi nút
 	button->OnUnhovered.AddDynamic(this, &UMainMenuButton_1::NormalButton);
 
-	// gọi PressedButton khi nhấn nút
+	// gọi PressedButton khi press
+	button->OnPressed.AddDynamic(this, &UMainMenuButton_1::PressedButton);
+
+	// goi NormalButton khi thả chuột
+	button->OnReleased.AddDynamic(this, &UMainMenuButton_1::NormalButton);
+
+	// gọi ClickedButton khi click
 	button->OnClicked.AddDynamic(this, &UMainMenuButton_1::ClickedButton);
 }

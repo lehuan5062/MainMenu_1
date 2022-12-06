@@ -27,25 +27,25 @@ void UMainMenuWidget_1::NativePreConstruct()
 	// nếu ButtonClass đã được chọn và danh sách dữ liệu nút có ít nhất một thành viên
 	if (ButtonClass->IsValidLowLevel() && ButtonList.IsValidIndex(0))
 	{
+		// nếu có widget PreviewImage
+		if (PreviewImage->IsValidLowLevel())
+		{
+			// gửi địa chỉ PreviewImage đến UMainMenuButton_1
+			UMainMenuButton_1::PreviewImage = PreviewImage;
+		}
+
 		// index loop tạo nút
 		uint8 index{};
 
 		// cứ mỗi thành viên trong danh sách dữ liệu nút
-		for (FMainMenuStruct_1 ButtonData : ButtonList)
+		for (const FMainMenuStruct_1& ButtonData : ButtonList)
 		{
 			// tạo một nút
 			const TObjectPtr<UMainMenuButton_1> button{ CreateWidget<UMainMenuButton_1>(GetWorld(), ButtonClass) };
 
 			// lưu dữ liệu nút
 			// nên nằm trước construct
-			button->ButtonData = ButtonList[index];
-
-			// nếu PreviewImage valid
-			if (PreviewImage->IsValidLowLevel())
-			{
-				// lưu widget hình để thay đổi
-				button->PreviewImage = PreviewImage;
-			}
+			button->ButtonData = ButtonData;
 
 			// nếu ButtonBox valid
 			if (ButtonBox->IsValidLowLevel())

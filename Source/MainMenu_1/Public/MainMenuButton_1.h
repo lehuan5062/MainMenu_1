@@ -9,6 +9,7 @@
 
 // UMG
 #include "Blueprint/UserWidget.h" // UUserWidget
+#include "Components/SlateWrapperTypes.h" // ESlateVisibility
 #include "Components/TextBlock.h" // UTextBlock
 #include "Components/Image.h" // UImage
 #include "Components/Button.h" // UButton
@@ -31,6 +32,9 @@ private:
 	// set trong init()
 	bool bRedDotValid;
 
+	// nếu đang không nhấn nút (trường hợp nhấn rồi giữ)
+	bool bPressed;
+
 	// bind nút
 	UFUNCTION()
 		// chuyển trạng thái nút khi bình thường
@@ -44,10 +48,15 @@ private:
 	// bind nút
 	UFUNCTION()
 		// chuyển trạng thái nút khi được nhấn
+		void PressedButton() noexcept;
+
+	// bind nút
+	UFUNCTION()
+		// mở level tương ứng khi click
 		void ClickedButton() noexcept;
 
 	// thay đổi opacity của chữ và sự hiển thị của chấm đỏ
-	void SetButtonState(const float& TextOpacity, const ESlateVisibility& RedDotVisisbility) noexcept;
+	void SetButtonState(const float& TextOpacity, const ESlateVisibility RedDotVisisbility) noexcept;
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -75,7 +84,7 @@ protected:
 	// chỉnh ở trong editor
 	UPROPERTY(EditAnywhere, Category = MainMenu)
 		// opacity khi được nhấn
-		float ClickedOpacity;
+		float PressedOpacity;
 
 	// parent alias
 	using Super = UUserWidget;
@@ -93,7 +102,7 @@ public:
 
 	// widget hình để đổi khi rê chuột vào
 	// nhận từ UMainMenuWidget_1 khi tạo nút
-	TObjectPtr<UImage> PreviewImage;
+	static inline TObjectPtr<UImage> PreviewImage;
 
 	// constructor
 	UMainMenuButton_1(const FObjectInitializer& ObjectInitializer);
